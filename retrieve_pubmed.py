@@ -18,7 +18,6 @@ def getPubmedSummary(pmidlist):
     #esearch = 'esearch.fcgi?db=pubmed&term=asthma&field=title'
     data = requests.get(mainurl+esummary)
     parsed = json.loads(data.text)
-    print(parsed)
     dct = {}
     
     for pmid in pmidlist:
