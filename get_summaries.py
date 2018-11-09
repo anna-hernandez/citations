@@ -1,9 +1,5 @@
 
-# coding: utf-8
-
-# In[1]:
-
-
+# import libraries
 try:
     from bs4 import BeautifulSoup as bs
     import requests
@@ -18,40 +14,22 @@ except Exception as e:
     print(e)
 
 
-# In[2]:
 
-
-# send request and retrieve pubmed summaries
-pmids = ['7931156']
-citation_dct = pm.getPubmedSummary(pmids)
-
-# format into dataframe and display
-citations = pd.DataFrame.from_dict(citation_dct, orient='index')
-citations.index.name = 'id_citation'
-citations.head()
-
-
-# In[3]:
-
-
-# format into dataframe and display
+# get summary data for publications with myquery in the title between the specified dates
 myquery = '\"kaposi-sarcoma' + '\'s associated virus"'
 citations_bydate = pd.DataFrame.from_dict(pm.getPubmedsByDate(myquery, 'title', (2001,2002)), orient='index')
 citations_bydate.index.name = 'id_citation'
 
+# ------------------------------------- EXAMPLE CASE -------------------------------------
+# The following code retrieves uses the two functions to retrieve summary data on all papers published
+# between 1009 and 2018, for the different species of human herpesviruses, and plots the trends.
 
-# In[4]:
-
-
+# specify the dates range
 mindates = np.arange(1990,2017)
 maxdates = np.arange(1991,2018)
 dates = list(zip(mindates,maxdates))
 
-
-# In[6]:
-
-
-totalpubs = np.empty((0,len(dates)))
+# define queries
 myqueries = np.array(['"herpes simplex virus 1"+OR+"herpes simplex virus type 1"',
                       '"herpes simplex virus 2"+OR+"herpes simplex virus type 2"',
                       '"varicella zoster virus"',
@@ -59,6 +37,8 @@ myqueries = np.array(['"herpes simplex virus 1"+OR+"herpes simplex virus type 1"
                       '"epstein-barr"',
                       '\"kaposi-sarcoma' + '\'s associated virus"'])
 
+# retrieve the summary data and store the number of publications, per year and species in an array
+totalpubs = np.empty((0,len(dates)))
 for q in myqueries:
     qpubs = np.empty((0,len(dates)))
     print('Searching papers containing {} in title'.format(q), end=' ')
@@ -70,11 +50,8 @@ for q in myqueries:
         qpubs = np.append(qpubs, yearpubs)
     totalpubs = np.vstack([totalpubs, qpubs])
     
-
-
-# In[15]:
-
-
+    
+# Plot the publications tendencies
 # define labels
 labels = np.array(['HSV1','HSV2','VZV','HCMV','EBV','KSHV'])
 
@@ -98,7 +75,6 @@ plt.xticks(x, ticks, rotation=90)
 plt.title('Number of publications per year')
 plt.xlabel('year')
 plt.ylabel('number of publications')
-
 
 plt.show()
 
