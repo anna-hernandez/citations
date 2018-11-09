@@ -51,7 +51,7 @@ def getPubmedSummary(pmidlist):
 
 # retrieve list of pubmed ids within a specific set of time defined by mindate and maxdate
 # call the getPubmedSummary for the returned pmid list
-def getPubmedsByDate(query, searchfield, mindate, maxdate):
+def getPubmedsByDate(query, searchfield, theDates):
     
     # set url to query
     mainurl = 'http://eutils.ncbi.nlm.nih.gov/entrez/eutils/'
