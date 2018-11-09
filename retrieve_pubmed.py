@@ -6,6 +6,9 @@ try:
     import json
     import numpy as np
     import pandas as pd
+    import matplotlib.pyplot as plt
+    import time
+    import math
 except Exception as e:
     print(e)
 
@@ -13,13 +16,23 @@ except Exception as e:
 # retrieve summary data for a list of pubmed ids using ncbi e-utilities
 def getPubmedSummary(pmidlist):
 
+    # set url to query
     mainurl = 'http://eutils.ncbi.nlm.nih.gov/entrez/eutils/'
-    esummary = 'esummary.fcgi?db=pubmed&retmode=json&id={}'.format(','.join(pmidlist))
-    #esearch = 'esearch.fcgi?db=pubmed&term=asthma&field=title'
-    data = requests.get(mainurl+esummary)
-    parsed = json.loads(data.text)
-    dct = {}
+    esummary = 'esummary.fcgi?db=pubmed&api_key=540abc288c5f8d3ffdb5a9926db491b33a09&retmode=json&id={}'.format(','.join(pmidlist))
+
+    # handle connection error. If the connection is refused, sleep and re-try
+    parsed = ''
+    while parsed == '':
+        try:
+            data = requests.get(mainurl+esummary)
+            parsed = json.loads(data.text)
+            dct = {}
+        except requests.exceptions.ConnectionError:
+            print("Connection refused. Waiting 5 seconds before trying again.")
+            time.sleep(5)
+            continue
     
+    # collect data for each article
     for pmid in pmidlist:
         dct[pmid] = {}
         authors = []
@@ -40,33 +53,47 @@ def getPubmedSummary(pmidlist):
 # call the getPubmedSummary for the returned pmid list
 def getPubmedsByDate(query, searchfield, mindate, maxdate):
     
+    # set url to query
     mainurl = 'http://eutils.ncbi.nlm.nih.gov/entrez/eutils/'
-    #esearch = 'esearch.fcgi?db=pubmed&term="human+herpesvirus 1"+OR+"human+herpesvirus-1"+OR+"human+herpesvirus type 1"&field=title&datetype=pdat&mindate=2017&maxdate=2018'
-    esearch = 'esearch.fcgi?db=pubmed&term={}&field={}&datetype=pdat&mindate={}&maxdate={}'.format(query, searchfield, mindate, maxdate)
-    data = requests.get(mainurl + esearch)
-    parsed = bs(data.text, 'lxml')
+    esearch = 'esearch.fcgi?db=pubmed&api_key=540abc288c5f8d3ffdb5a9926db491b33a09&term={}&field={}&retmax=100000&datetype=pdat&mindate={}&maxdate={}'.format(theQuery, theSearchfield, theDates[0], theDates[1])
+    
+    # handle connection error. If the connection is refused, sleep and re-try
+    parsed = ''
+    while parsed == '':
+        try:
+            data = requests.get(mainurl + esearch)
+            parsed = bs(data.text, 'lxml')
+            
+        except requests.exceptions.ConnectionError:
+            print("Connection refused. Waiting 5 seconds before trying again.")
+            time.sleep(5)
+            continue
+    
+    # collect all pmids of returned articles
     ids = parsed.find_all('id')
     pmidlist = []
     for i in ids:
         pmidlist.append(i.get_text())
-    summaries = getPubmedSummary(pmidlist)
+    
+    # if the number of pmids is too large than accepted in a single query, split the list and submit one subset at a time
+    # collect the data on the full list into one single summary to return
+    summaries = {}
+    for alist in [pmidlist[i:i+300] for i in range(0, len(pmidlist), 300)]:
+        summaries.update(getPubmedSummary(alist))
     return summaries
 
 # --------------- main code --------------------
 
 # call getPubmedsByDate()
 myquery = '"herpes simplex virus 1"+OR+"herpes simplex virus type 1"'
-# format into dataframe and display
 citations_bydate = pd.DataFrame.from_dict(getPubmedsByDate(myquery, 'title',2017,2018), orient='index')
 citations_bydate.index.name = 'id_citation'
 citations_bydate.head()
 
 
 # call getPubmedSummary()
-# send request for sample pmid list and retrieve pubmed summaries
 pmids = ['7931156','8380085','8523566','8661404','8805706','8805708','29035172']
 citation_dct = getPubmedSummary(pmids)
-# format into dataframe and display
 citations = pd.DataFrame.from_dict(citation_dct, orient='index')
 citations.index.name = 'id_citation'
 citations.head()
